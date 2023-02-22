@@ -1,5 +1,4 @@
 // Define a GameObject class
-// send server not done yet
 export class GameObject {
   constructor(position) {
     this.id = GameObject.nextId(); // generate a unique ID for the object
@@ -8,7 +7,6 @@ export class GameObject {
   }
 
   getId(){
-    // console.log("id: ", this.id)
     return this.id
   }
 
@@ -37,6 +35,8 @@ export class GameObject {
     }
     // send message
     // server.send(JSON.stringify(message));
+    // now I use other method instead 
+    // but in the real world we need to send some info out ot server
   }
 
   static nextId() {
@@ -107,13 +107,13 @@ export class DirtyList {
     return false;
   }
 
-  setDirty(objectId, clientId) {
+  // when dirty list receive upadte info AFTER currentStateMap handle the logic
+  updateObject(object, clientIds) {
+    let objectId = object.getId()
     this.data.forEach(obj => {
       if (obj.latestData.getId() === objectId){
-        if (!obj.DirtyClients.includes(clientId)){
-          obj.DirtyClients.push(clientId)
-          return
-        }
+        obj.latestData = object
+        obj.DirtyClients = clientIds
       }
     })
   }
@@ -143,14 +143,13 @@ export class DirtyList {
   }
 }
 
-// kinda done
 export class CurrentStateMap {
   constructor(Players, Objects) {
     this.data = new Map();
     for (const player of Players) {
       const playerData = new Map();
       for (const object of Objects) {
-        playerData.set(object.getId(), { time: -1, sequence: 0, value: {position: [0, 0]} });
+        playerData.set(object.getId(), {time: -1, sequence: 0, value: {position: [0, 0]} });
       }
       this.data.set(player.getId(), playerData);
     }
@@ -179,84 +178,70 @@ export class CurrentStateMap {
   getValue(playerId, objectId) {
     return this.data.get(playerId).get(objectId).value;
   }
+
+  getMap() {
+    return this.data
+  }
+
+  update(playerId, objectId, time, value) {
+    this.setSequence(playerId, objectId, 0)
+    this.setTime(playerId, objectId, time)
+    this.setValue(playerId, objectId, value)
+  }
 }
 
-
-
-// have not finished yet
 export class Server {
-  constructor(numPlayers, numObjects) {
-    this.dirtyList = new DirtyList(numPlayers, numObjects);
-    this.CurrentStateMap = new CurrentStateMap(numPlayers, numObjects);
-    this.gameObjects = [];
-    this.clients = [];
-    this.currentTime = 0;
+  constructor(Players, Objects) {
+    this.positionLimit = 5;
+    this.sequenceLimit = 10;
+    this.timeLimit = 1 * 1000; // milli second
+    this.dirtyList = new DirtyList(Players, Objects);
+    this.currentStateMap = new CurrentStateMap(Players, Objects);
+    this.gameObjects = Objects;
+    this.clients = Players;
+    this.currentTime = new Date();
   }
 
-  addGameObject(object) {
-    this.gameObjects.push(object);
+  updateStateMap(object) {
+    let clientsNeedUpdate = []
+    let objId = object.getId()
+    this.currentStateMap.getMap().forEach((subMap, playerId) => {
+      let vector = subMap.get(objId)
+      if (vector.time === -1 
+        || new Date() - vector.time > this.timeLimit 
+        || vector.sequence > this.sequenceLimit 
+        || vector.value.position[0] - object.getPosition()[0] > this.positionLimit
+        || vector.value.position[1] - object.getPosition()[1] > this.positionLimit) {
+        this.currentStateMap.update(playerId, objId, new Date(), {position: object.getPosition()})
+        clientsNeedUpdate.push(playerId)
+      } 
+    });
+    return clientsNeedUpdate
   }
 
-  removeGameObject(object) {
-    const index = this.gameObjects.indexOf(object);
-    if (index !== -1) {
-      this.gameObjects.splice(index, 1);
-    }
+  setPositionLimit(limit) {
+    this.positionLimit = limit
   }
 
-  addClient(client) {
-    this.clients.push(client);
+  setSequenceLimit(limit) {
+    this.sequenceLimit = limit
   }
 
-  removeClient(client) {
-    const index = this.clients.indexOf(client);
-    if (index !== -1) {
-      this.clients.splice(index, 1);
-    }
+  setTimeLimit(limit) { // input second as unit 
+    this.timeLimit = limit * 1000 // second to millisecond, ex: 5 sec -> 5000 millisec
   }
 
-  update(dt) {
-    for (const object of this.gameObjects) {
-      object.update(dt);
-      NEW_UPDATE(object, this.clients, this.dirtyList, this.CurrentStateMap, this.currentTime);
-    }
-    VFC_MONITOR(this.gameObjects, this.clients, this.dirtyList, this.CurrentStateMap, this);
-    this.currentTime += dt;
+  getTimeLimit() {
+    return this.timeLimit
   }
 
-  sendStateUpdate(object, client) {
-    // Send the object's state to the client
+  getSequenceLimit() {
+    return this.sequenceLimit
   }
 
-  // NEW_UPDATE algorithm
-  NewUpdate(OBJ, clients, dirtyList, CurrentStateMap, currentTime) {
-    for (const c of clients) {
-      const vector = CurrentStateMap.getData(c.playerIndex, OBJ.index);
-      if (vector.time === -1) {
-        vector.time = currentTime;
-        vector.sequence++;
-        if (vector.value === 0) {
-          vector.value += distance(OBJ.current_position, OBJ.new_position);
-        }
-        dirtyList.setDirty(c.playerIndex, OBJ.index, true);
-      }
-    }
+  getPositionLimit() {
+    return this.positionLimit
   }
-
-  // VFC_MONITOR algorithm
-  VfcMonitor(OBJECTS, CLIENTS, dirtyList, CurrentStateMap, server) {
-    for (const o of OBJECTS) {
-      for (const c of CLIENTS) {
-        const vector = getMaxConsistencyValues(o, c, CurrentStateMap);
-        if (dirtyList.isDirty(c.playerIndex, o.index) && !checkVFCConditions(o, c, vector)) {
-          server.sendStateUpdate(o, c);
-          updateCurrentStateMap(o, c, CurrentStateMap);
-          dirtyList.setDirty(c.playerIndex, o.index, false);
-        }
-      }
-    }
-  }
-
 }
 
 
