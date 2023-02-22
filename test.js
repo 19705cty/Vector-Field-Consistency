@@ -1,24 +1,59 @@
-const objectsMap = new Map();
-import { GameObject, DirtyList } from "./VFC.js";
+import { GameObject, DirtyList, Client, CurrentStateMap, Server} from "./VFC.js";
 
-// Add objects to the map
-const object1 = { id: 0, name: "Object 1", position: [3,4] };
-const object2 = { id: 10, name: "Object 2", obj: new GameObject([3,4])  };
-objectsMap.set(object1.id, object1);
-objectsMap.set(object2.id, object2);
 
-// Access objects in the map by ID
-const obj1 = objectsMap.get(1);
-const obj2 = objectsMap.get(3);
-const obj10 = objectsMap.get(10);
+let obj1 = new GameObject([1,1])
+let obj2 = new GameObject([2,2])
+let obj3 = new GameObject([3,3])
+let obj4 = new GameObject([3,3])
 
-console.log(obj1)
-console.log(obj2)
-console.log(obj10)
 
-// Modify objects in the map
-// obj1.name = "New name for Object 1";
-// objectsMap.set(1, obj1);
+let ply1 = new Client()
+let ply2 = new Client()
+let ply3 = new Client()
+let ply4 = new Client()
 
-// // Remove objects from the map
-// objectsMap.delete(2);
+let Players = [ply1, ply2, ply3, ply4]
+let GameObjects = [obj1, obj2, obj3, obj4]
+
+// let currentStateMap = new CurrentStateMap(Players, GameObjects)
+
+// let server = new Server(Players, GameObjects)
+
+let CSM = new CurrentStateMap(Players, GameObjects)
+console.log(CSM)
+console.log(CSM.getSequence(2,2))
+CSM.setSequence(2,2,10)
+console.log(CSM.getSequence(2,2))
+
+// console.log(CSM)
+
+CSM.update(2, 2, new Date(), {position: [10,10]})
+console.log(CSM.getSequence(2,2))
+console.log(CSM.getTime(2,2))
+console.log(CSM.getValue(2,2))
+
+
+
+// let a1 = 1
+// let a2 = 2
+// let a3 = 3
+// let a4 = 4
+
+// let l = [a1, a2, a3, a4]
+
+// function simulation() {
+//   // newPosition = [Math.floor(Math.random() * 101), Math.floor(Math.random() * 101)]
+//   let pos = Math.floor(Math.random() * 101)
+//   let plyIndex = Math.floor(Math.random() * 3) 
+//   // let currentPlayer = l[plyIndex]
+//   l[plyIndex] = pos
+//   console.log("current position: ", l)
+// }
+
+
+// let intervalId = setInterval(simulation, 10); // Run the function every 100 milliseconds
+
+// setTimeout(() => {
+//   clearInterval(intervalId); // Stop the loop after 5000 milliseconds (5 seconds)
+//   console.log('Game Stop');
+// }, 5000);
