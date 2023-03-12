@@ -5,6 +5,6 @@ import gameData from '../models/gameData.js';
 const router = express.Router();
 
 // Define message API routes
-router.post('/object/objectsUpdate', (req, res) => objectsUpdate(req, res, gameData));
+router.post('/object/objectsUpdate', (req, res) => objectsUpdate(req, res));
 
 export default router;

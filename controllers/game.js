@@ -9,6 +9,7 @@ async function logGameInfo(req, res) {
 }
 
 async function startNewGame(req, res) {
+  // gameData.setPositionLimit(69)
   return res.status(200).json({
     msg: "only show on the server side."
   });

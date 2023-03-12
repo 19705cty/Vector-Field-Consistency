@@ -219,6 +219,23 @@ export class Server {
     return clientsNeedUpdate
   }
 
+  updateStateMapById(id, location) {
+    let clientsNeedUpdate = []
+    let objId = id
+    this.currentStateMap.getMap().forEach((subMap, playerId) => {
+      let vector = subMap.get(objId)
+      if (vector.time === -1 
+        || new Date() - vector.time > this.timeLimit 
+        || vector.sequence > this.sequenceLimit 
+        || vector.value.position[0] - location[0] > this.positionLimit
+        || vector.value.position[1] - location[1] > this.positionLimit) {
+        this.currentStateMap.update(playerId, objId, new Date(), {position: location})
+        clientsNeedUpdate.push(playerId)
+      } 
+    });
+    return clientsNeedUpdate
+  }
+
   setPositionLimit(limit) {
     this.positionLimit = limit
   }
