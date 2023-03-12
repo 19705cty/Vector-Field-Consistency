@@ -5,7 +5,7 @@ import gameData from '../models/gameData.js';
 
 const router = express.Router();
 
-router.get('/logGameInfo', (req, res) => logGameInfo(req, res));
-router.get('/startNewGame', (req, res) => startNewGame(req, res));
+router.get('/logGameInfo', (req, res) => logGameInfo(req, res, gameData));
+router.post('/startNewGame', (req, res) => startNewGame(req, res, gameData));
 
 export default router;
